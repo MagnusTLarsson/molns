@@ -531,6 +531,23 @@ class MOLNSController(MOLNSbase):
             fd.write(client_file_data)
         print "Success"
 
+    # TASK 2 EDITED:
+    @classmethod
+    def controller_restart(cls, args, config):
+        """ TASK 2 """
+        logging.debug("MOLNSController.controller_restart(args={0})".format(args))
+        #controller_obj = cls._get_controllerobj(args, config)
+        controller_obj = config.get_object(name=args[0], kind='Controller')
+        instances = config.get_controller_instances(controller_id=controller_obj.id)
+        controller_obj.restart_instance(instances)
+        sshdeploy = SSHDeploy(config = controller_obj.provider, config_dir = config.config_dir)
+        sshdeploy.deploy_ipython_controller(instances[0].ip_address)
+        sshdeploy.deploy_molns_webserver(instances[0].ip_address)
+
+
+
+
+
 
 ###############################################
 
@@ -1411,6 +1428,9 @@ COMMAND_LIST = [
                 function=MOLNSController.controller_export),
             Command('import',{'filename.json':None},
                 function=MOLNSController.controller_import),
+            # Task 2 EDITED:
+            Command('restart', {'name':None},
+                function=MOLNSController.controller_restart),
         ]),
         # Commands to interact with Worker-Groups
         SubCommand('worker',[

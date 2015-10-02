@@ -349,7 +349,32 @@ class OpenStackProvider(OpenStackBase):
         except Exception as e:
             logging.exception(e)
             raise ProviderException("Could not delete floating ip '{0}'".format(ip))
+    
+    #TASK2 Updated
+    def _attach_floating_ip(self, instance):
+        # Try to attach a floating IP to the controller
+        logging.info("Attaching floating ip to the server...")
+        try:
+            floating_ip_list = self.nova.floating_ips.list()
+            myFloatingIP = None
+            for floating_ip in floating_ip_list:
+                if floating_ip.instance_id == None:
+                    myFloatingIP = floating_ip
+                    logging.info("Attaching EXISTING floating ip")
+                    instance.add_floating_ip(myFloatingIP)
+                    logging.debug("ip={0}".format(myFloatingIP.ip))
+                    break
+            if myFloatingIP == None:
+                logging.info("Attaching/creating NEW floating ip")
+                myFloatingIP = self.nova.floating_ips.create(self.config['floating_ip_pool'])
+                instance.add_floating_ip(myFloatingIP)
+                logging.debug("ip={0}".format(myFloatingIP.ip))
+            return myFloatingIP.ip
+        except Exception as e:
+            raise ProviderException("Failed to attach a floating IP to the controller.\n{0}".format(e))
 
+#########################################
+    """
     def _attach_floating_ip(self, instance):
        # Try to attach a floating IP to the controller
         logging.info("Attaching floating ip to the server...")
@@ -360,8 +385,9 @@ class OpenStackProvider(OpenStackBase):
             return floating_ip.ip
         except Exception as e:
             raise ProviderException("Failed to attach a floating IP to the controller.\n{0}".format(e))
-
+    """
 ##########################################
+
 class OpenStackController(OpenStackBase):
     """ Provider handle for an open stack controller. """
     
@@ -402,6 +428,13 @@ class OpenStackController(OpenStackBase):
             self.provider._stop_instances(pids)
         else:
             self.provider._stop_instances([instances.provider_instance_identifier])
+
+    # TASK2 EDITED:
+    def restart_instance(self, instances):
+        self.stop_instance(instances)
+        self.resume_instance(instances)
+    
+    ##########
 
     def terminate_instance(self, instances):
         if isinstance(instances, list):
